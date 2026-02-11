@@ -48,7 +48,7 @@ changelog:
 release:
   github:
     owner: agentpkg
-    name: agentpkg
+    name: apkg
   draft: false
   prerelease: auto
 
@@ -62,8 +62,8 @@ homebrew_casks:
       name: homebrew-apkg
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     url:
-      verified: github.com/agentpkg/agentpkg
-    homepage: https://github.com/agentpkg/agentpkg
+      verified: github.com/agentpkg/apkg
+    homepage: https://github.com/agentpkg/apkg
     description: A package manager for coding agent skills, MCP servers, and subagents
     license: ""
     hooks:
@@ -79,7 +79,7 @@ nfpms:
     ids:
       - apkg
     vendor: agentpkg
-    homepage: https://github.com/agentpkg/agentpkg
+    homepage: https://github.com/agentpkg/apkg
     maintainer: agentpkg
     description: A package manager for coding agent skills, MCP servers, and subagents
     license: ""
