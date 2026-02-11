@@ -35,8 +35,6 @@ A local path starting with ./ or ../ installs from the filesystem.`,
 		RunE: runInstallSkill,
 	}
 
-	installCmd.PersistentFlags().BoolP("global", "g", false, "Install globally (~/.apkg/) instead of in the current project")
-
 	installCmd.AddCommand(skillCmd)
 	return installCmd
 }
@@ -98,7 +96,7 @@ func runInstallAll(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading lockfile: %w", err)
 	}
 
-	agents, err := resolveAgents()
+	agents, err := resolveAgents(global)
 	if err != nil {
 		return err
 	}
@@ -148,7 +146,7 @@ func runInstallSkill(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	agents, err := resolveAgents()
+	agents, err := resolveAgents(global)
 	if err != nil {
 		return err
 	}
@@ -237,16 +235,17 @@ func entryKey(e config.SkillLockEntry) string {
 
 // resolveAgents returns the agent list from DevCfg, or prompts the user
 // to select from all registered projector agents if none are configured.
-func resolveAgents() ([]string, error) {
+func resolveAgents(global bool) ([]string, error) {
 	if len(DevCfg.Agents) > 0 {
 		return DevCfg.Agents, nil
 	}
-	return promptAgents()
+	return promptAgents(global)
 }
 
 // promptAgents uses huh to present a multi-select of all registered agents,
 // then asks whether to save the choice for future installs.
-func promptAgents() ([]string, error) {
+// When global is true, the save prompt only offers "globally" (not "for this project").
+func promptAgents(global bool) ([]string, error) {
 	agents := projector.RegisteredAgents()
 	options := make([]huh.Option[string], len(agents))
 	for i, a := range agents {
@@ -270,16 +269,26 @@ func promptAgents() ([]string, error) {
 		return selected, nil
 	}
 
+	var saveOptions []huh.Option[string]
+	if global {
+		saveOptions = []huh.Option[string]{
+			huh.NewOption("Yes, globally", "global"),
+			huh.NewOption("No", "no"),
+		}
+	} else {
+		saveOptions = []huh.Option[string]{
+			huh.NewOption("Yes, for this project", "project"),
+			huh.NewOption("Yes, globally", "global"),
+			huh.NewOption("No", "no"),
+		}
+	}
+
 	var saveChoice string
 	err = huh.NewForm(
 		huh.NewGroup(
 			huh.NewSelect[string]().
 				Title("Save agent selection for future installs?").
-				Options(
-					huh.NewOption("Yes, for this project", "project"),
-					huh.NewOption("Yes, globally", "global"),
-					huh.NewOption("No", "no"),
-				).
+				Options(saveOptions...).
 				Value(&saveChoice),
 		),
 	).Run()

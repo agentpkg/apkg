@@ -20,27 +20,37 @@ type DevConfig struct {
 }
 
 // LoadDevConfig resolves developer configuration using Viper's merge semantics.
+// When global is true, only the global config (~/.apkg/config.toml) is loaded,
+// skipping the project-local apkg.local.toml. This ensures that global installs
+// use global agent preferences rather than project-scoped ones.
 // flagAgents, if non-empty, takes highest precedence (set via --agents flag).
-func LoadDevConfig(flagAgents []string) (*DevConfig, error) {
-	v := viper.New()
-	v.SetConfigType("toml")
-
-	// Lowest priority: global config ~/.apkg/config.toml
+func LoadDevConfig(flagAgents []string, global bool) (*DevConfig, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, fmt.Errorf("determining home directory: %w", err)
 	}
 	globalPath := filepath.Join(home, ".apkg", "config.toml")
+	return loadDevConfig(flagAgents, global, globalPath, LocalConfigFile)
+}
+
+// loadDevConfig is the internal implementation that accepts explicit paths,
+// making it testable without touching the real home directory.
+func loadDevConfig(flagAgents []string, global bool, globalPath, localPath string) (*DevConfig, error) {
+	v := viper.New()
+	v.SetConfigType("toml")
+
+	// Lowest priority: global config
 	v.SetConfigFile(globalPath)
 	// Read global config; ignore if missing.
 	_ = v.ReadInConfig()
 
-	// Higher priority: project-local apkg.local.toml
-	localPath := LocalConfigFile
-	if _, err := os.Stat(localPath); err == nil {
-		v.SetConfigFile(localPath)
-		if err := v.MergeInConfig(); err != nil {
-			return nil, fmt.Errorf("reading %s: %w", localPath, err)
+	// Higher priority: project-local config (skipped for global scope)
+	if !global {
+		if _, err := os.Stat(localPath); err == nil {
+			v.SetConfigFile(localPath)
+			if err := v.MergeInConfig(); err != nil {
+				return nil, fmt.Errorf("reading %s: %w", localPath, err)
+			}
 		}
 	}
 

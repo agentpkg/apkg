@@ -21,7 +21,8 @@ func NewRootCmd() *cobra.Command {
 		Short: "Agent package manager",
 		Long:  "apkg manages agent-agnostic skill packages and projects them into coding agent configurations.",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := config.LoadDevConfig(flagAgents)
+			global, _ := cmd.Flags().GetBool("global")
+			cfg, err := config.LoadDevConfig(flagAgents, global)
 			if err != nil {
 				return err
 			}
@@ -31,6 +32,7 @@ func NewRootCmd() *cobra.Command {
 		SilenceUsage: true,
 	}
 
+	root.PersistentFlags().BoolP("global", "g", false, "Install globally (~/.apkg/) instead of in the current project")
 	root.PersistentFlags().StringSliceVar(&flagAgents, "agents", nil, "coding agents to project for (e.g. claude-code,cursor)")
 
 	root.AddCommand(newInitCmd())
