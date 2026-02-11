@@ -1,0 +1,89 @@
+version: 2
+
+git:
+  tag_sort: -version:refname
+  prerelease_suffix: "-"
+
+builds:
+  - id: apkg
+    main: ./cmd/apkg
+    binary: apkg
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+
+archives:
+  - id: apkg-archive
+    ids:
+      - apkg
+    formats:
+      - zip
+    name_template: "apkg-{{ .Os }}-{{ .Arch }}"
+    files:
+      - none*
+
+checksum:
+  name_template: "checksums.txt"
+
+signs:
+  - cmd: cosign
+    signature: "${artifact}.bundle"
+    args:
+      - sign-blob
+      - --yes
+      - --bundle=${signature}
+      - ${artifact}
+    artifacts: checksum
+
+changelog:
+  use: github-native
+
+release:
+  github:
+    owner: agentpkg
+    name: agentpkg
+  draft: false
+  prerelease: auto
+
+homebrew_casks:
+  - name: apkg
+    ids:
+      - apkg-archive
+    directory: Casks
+    repository:
+      owner: agentpkg
+      name: homebrew-apkg
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    url:
+      verified: github.com/agentpkg/agentpkg
+    homepage: https://github.com/agentpkg/agentpkg
+    description: A package manager for coding agent skills, MCP servers, and subagents
+    license: ""
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/apkg"]
+          end
+
+nfpms:
+  - id: apkg-nfpm
+    package_name: apkg
+    ids:
+      - apkg
+    vendor: agentpkg
+    homepage: https://github.com/agentpkg/agentpkg
+    maintainer: agentpkg
+    description: A package manager for coding agent skills, MCP servers, and subagents
+    license: ""
+    formats:
+      - rpm
+      - deb
+    bindir: /usr/bin
