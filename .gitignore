@@ -1,0 +1,8 @@
+apkg
+
+apkg.local.toml
+.claude/
+.cursor/
+.gemini/
+.agents/
+.codex/
