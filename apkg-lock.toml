@@ -14,3 +14,9 @@ name = 'playwright'
 transport = 'stdio'
 package = 'npm:@playwright/mcp@latest'
 integrity = 'sha256:866744182f189ba1dde735828278150efd3acaa18d9b5e60ee208bb34ca46c0b'
+
+[[mcp_servers]]
+name = 'git'
+transport = 'stdio'
+package = 'uv:mcp-server-git'
+integrity = 'sha256:f85209245019d4b17bc549ac6bbcbfc81b56decc33b0432beac4699a0049fd93'

@@ -8,6 +8,11 @@ path = 'dotfiles/.claude/skills/mn-github-pr-review'
 ref = 'main'
 
 [mcpServers]
+[mcpServers.git]
+transport = 'stdio'
+name = 'git'
+url = 'uv:mcp-server-git'
+
 [mcpServers.playwright]
 transport = 'stdio'
 name = 'playwright'

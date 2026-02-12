@@ -71,6 +71,8 @@ func SourceFromMCPConfig(name string, ms config.MCPSource) (Source, error) {
 	switch {
 	case ms.ManagedStdioMCPConfig != nil && strings.HasPrefix(ms.Package, "npm:"):
 		return &NPMSource{Package: strings.TrimPrefix(ms.Package, "npm:"), MCPConfig: ms}, nil
+	case ms.ManagedStdioMCPConfig != nil && strings.HasPrefix(ms.Package, "uv:"):
+		return &UVSource{Package: strings.TrimPrefix(ms.Package, "uv:"), MCPConfig: ms}, nil
 	default:
 		return nil, fmt.Errorf("apkg does not currently support installing the MCP config provided")
 	}

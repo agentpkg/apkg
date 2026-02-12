@@ -44,7 +44,17 @@ func Load(dir string) (MCPServer, error) {
 	}
 
 	if cfg.ManagedStdioMCPConfig != nil {
-		binPath, err := resolveNPMBin(dir, cfg.Package)
+		var binPath string
+		var err error
+
+		switch {
+		case strings.HasPrefix(cfg.Package, "npm:"):
+			binPath, err = resolveNPMBin(dir, cfg.Package)
+		case strings.HasPrefix(cfg.Package, "uv:"):
+			binPath, err = resolveUVBin(dir, cfg.Package)
+		default:
+			return nil, fmt.Errorf("unsupported managed package prefix in %q", cfg.Package)
+		}
 		if err != nil {
 			return nil, fmt.Errorf("resolving binary for %q: %w", cfg.Package, err)
 		}
@@ -165,4 +175,20 @@ func (s *managedLocalMCPServer) Headers() map[string]string {
 
 func (s *managedLocalMCPServer) Env() map[string]string {
 	return s.env
+}
+
+// resolveUVBin finds the executable binary for a uv package installed at dir.
+// It looks for the binary at .venv/bin/<package-name> inside the install directory.
+func resolveUVBin(dir string, pkg string) (string, error) {
+	pkgName := strings.TrimPrefix(pkg, "uv:")
+	if idx := strings.Index(pkgName, "=="); idx >= 0 {
+		pkgName = pkgName[:idx]
+	}
+
+	binPath := filepath.Join(dir, ".venv", "bin", pkgName)
+	if _, err := os.Stat(binPath); err != nil {
+		return "", fmt.Errorf("binary not found at %s: %w", binPath, err)
+	}
+
+	return binPath, nil
 }
