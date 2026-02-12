@@ -1,7 +1,7 @@
 package projector
 
 import (
-	"github.com/agentpkg/agentpkg/pkg/pkg/skill"
+	"github.com/agentpkg/agentpkg/pkg/skill"
 )
 
 type Projector interface {

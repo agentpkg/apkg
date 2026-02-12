@@ -3,13 +3,13 @@ package projector
 import (
 	"testing"
 
-	"github.com/agentpkg/agentpkg/pkg/pkg/skill"
+	"github.com/agentpkg/agentpkg/pkg/skill"
 )
 
 type stubProjector struct{}
 
-func (s *stubProjector) SupportsSkills() bool                                { return true }
-func (s *stubProjector) ProjectSkills(_ string, _ []skill.Skill) error       { return nil }
+func (s *stubProjector) SupportsSkills() bool                          { return true }
+func (s *stubProjector) ProjectSkills(_ string, _ []skill.Skill) error { return nil }
 
 func TestRegisteredAgents(t *testing.T) {
 	tests := map[string]struct {

@@ -1,8 +1,8 @@
 package gemini
 
 import (
-	"github.com/agentpkg/agentpkg/pkg/pkg/skill"
 	"github.com/agentpkg/agentpkg/pkg/projector"
+	"github.com/agentpkg/agentpkg/pkg/skill"
 )
 
 func init() {

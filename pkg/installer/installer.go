@@ -6,8 +6,8 @@ import (
 	"sort"
 
 	"github.com/agentpkg/agentpkg/pkg/config"
-	"github.com/agentpkg/agentpkg/pkg/pkg/skill"
 	"github.com/agentpkg/agentpkg/pkg/projector"
+	"github.com/agentpkg/agentpkg/pkg/skill"
 	"github.com/agentpkg/agentpkg/pkg/source"
 	"github.com/agentpkg/agentpkg/pkg/store"
 )
@@ -37,7 +37,7 @@ func (inst *Installer) InstallAll(ctx context.Context, cfg *config.Config, exist
 	var skills []skill.Skill
 	for _, name := range names {
 		ss := cfg.Skills[name]
-		src := source.SourceFromConfig(ss)
+		src := source.SourceFromSkillConfig(ss)
 
 		// If the lockfile already has a resolved commit for this skill and
 		// the config ref hasn't changed, substitute the locked commit as
@@ -46,7 +46,7 @@ func (inst *Installer) InstallAll(ctx context.Context, cfg *config.Config, exist
 		// cache — making the entire fetch a local-only operation.
 		key := lockKey(ss)
 		if entry, ok := lockIndex[key]; ok && entry.Commit != "" && entry.Ref == ss.Ref {
-			src = source.SourceFromConfig(config.SkillSource{
+			src = source.SourceFromSkillConfig(config.SkillSource{
 				Git:  ss.Git,
 				Path: ss.Path,
 				Ref:  entry.Commit,

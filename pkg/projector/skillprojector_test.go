@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/agentpkg/agentpkg/pkg/pkg/skill"
+	"github.com/agentpkg/agentpkg/pkg/skill"
 )
 
 type fakeSkill struct {
@@ -166,7 +166,7 @@ func TestSkillProjector_ProjectSkills(t *testing.T) {
 				}
 				return []skill.Skill{&fakeSkill{name: "my-skill", dir: skillDir}}
 			},
-			verify: func(t *testing.T, projectDir, agentDir string) {},
+			verify:  func(t *testing.T, projectDir, agentDir string) {},
 			wantErr: true,
 		},
 	}

@@ -111,12 +111,12 @@ func TestParseRef(t *testing.T) {
 	}
 }
 
-func TestSourceFromConfig(t *testing.T) {
+func TestSourceFromSkillConfig(t *testing.T) {
 	tests := map[string]struct {
-		input     config.SkillSource
-		wantType  string
+		input      config.SkillSource
+		wantType   string
 		wantGitURL string
-		wantPath  string
+		wantPath   string
 	}{
 		"git source": {
 			input: config.SkillSource{
@@ -139,7 +139,7 @@ func TestSourceFromConfig(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			src := SourceFromConfig(tc.input)
+			src := SourceFromSkillConfig(tc.input)
 
 			switch tc.wantType {
 			case "git":

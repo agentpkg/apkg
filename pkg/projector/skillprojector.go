@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/agentpkg/agentpkg/pkg/pkg/skill"
+	"github.com/agentpkg/agentpkg/pkg/skill"
 )
 
 // SkillProjector projects skills into a given agent directory by creating
