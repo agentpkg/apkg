@@ -16,11 +16,33 @@ type LockFile struct {
 }
 
 type SkillLockEntry struct {
+	Name      string `toml:"name"`
 	Git       string `toml:"git,omitempty"`
 	Path      string `toml:"path,omitempty"`
 	Ref       string `toml:"ref,omitempty"`
 	Commit    string `toml:"commit,omitempty"`
 	Integrity string `toml:"integrity,omitempty"`
+}
+
+type MCPLockEntry struct {
+	Name      string `toml:"name"`
+	Transport string `toml:"transport"`
+
+	// Config mirror (for drift detection — if any of these change, re-resolve)
+	Package    string   `toml:"package,omitempty"`
+	Image      string   `toml:"image,omitempty"`
+	Port       int      `toml:"port,omitempty"`
+	URL        string   `toml:"url,omitempty"`
+	Command    string   `toml:"command,omitempty"`
+	Args       []string `toml:"args,omitempty"`
+	EnvKeys    []string `toml:"env_keys,omitempty"`    // keys only, not values (security)
+	HeaderKeys []string `toml:"header_keys,omitempty"` // keys only
+
+	// Resolved fields (for reproducibility)
+	ResolvedVersion string `toml:"resolved_version,omitempty"` // npm/uv resolved version
+	InstallPath     string `toml:"install_path,omitempty"`     // relative to store root
+	Digest          string `toml:"digest,omitempty"`           // container image digest
+	Integrity       string `toml:"integrity,omitempty"`        // SHA256 of installed content
 }
 
 func ReadLockFile(data []byte) (*LockFile, error) {
