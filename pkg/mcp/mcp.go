@@ -72,6 +72,32 @@ func Load(dir string) (MCPServer, error) {
 		return server, nil
 	}
 
+	if cfg.UnmanagedStdioMCPConfig != nil {
+		server := &managedLocalMCPServer{
+			name:    cfg.Name,
+			command: cfg.Command,
+		}
+		if cfg.StdioMCPConfig != nil {
+			server.args = cfg.Args
+		}
+		if cfg.LocalMCPConfig != nil {
+			server.env = cfg.Env
+		}
+		return server, nil
+	}
+
+	if cfg.ExternalHttpMCPConfig != nil {
+		server := &httpMCPServer{
+			name:      cfg.Name,
+			url:       cfg.URL,
+			transport: cfg.Transport,
+		}
+		if cfg.HttpMCPConfig != nil {
+			server.headers = cfg.Headers
+		}
+		return server, nil
+	}
+
 	return nil, fmt.Errorf("unsupported MCP server configuration")
 }
 
@@ -175,6 +201,28 @@ func (s *managedLocalMCPServer) Headers() map[string]string {
 
 func (s *managedLocalMCPServer) Env() map[string]string {
 	return s.env
+}
+
+type httpMCPServer struct {
+	name      string
+	url       string
+	transport string
+	headers   map[string]string
+}
+
+func (s *httpMCPServer) Name() string      { return s.name }
+func (s *httpMCPServer) Transport() string  { return s.transport }
+func (s *httpMCPServer) Command() string    { return "" }
+func (s *httpMCPServer) Args() []string     { return nil }
+func (s *httpMCPServer) URL() string        { return s.url }
+func (s *httpMCPServer) Headers() map[string]string { return s.headers }
+func (s *httpMCPServer) Env() map[string]string     { return nil }
+
+func (s *httpMCPServer) Validate() error {
+	if s.url == "" {
+		return fmt.Errorf("external HTTP MCP server has no URL configured")
+	}
+	return nil
 }
 
 // resolveUVBin finds the executable binary for a uv package installed at dir.

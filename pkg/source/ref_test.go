@@ -1,6 +1,7 @@
 package source
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/agentpkg/agentpkg/pkg/config"
@@ -161,6 +162,70 @@ func TestSourceFromSkillConfig(t *testing.T) {
 				if ls.Path != tc.wantPath {
 					t.Errorf("Path = %q, want %q", ls.Path, tc.wantPath)
 				}
+			}
+		})
+	}
+}
+
+func TestSourceFromMCPConfig(t *testing.T) {
+	tests := map[string]struct {
+		name      string
+		ms        config.MCPSource
+		wantType  string
+		wantErr   bool
+	}{
+		"npm managed stdio": {
+			name: "npm-server",
+			ms: config.MCPSource{
+				Transport:            "stdio",
+				ManagedStdioMCPConfig: &config.ManagedStdioMCPConfig{Package: "npm:some-pkg@1.0.0"},
+			},
+			wantType: "*source.NPMSource",
+		},
+		"uv managed stdio": {
+			name: "uv-server",
+			ms: config.MCPSource{
+				Transport:            "stdio",
+				ManagedStdioMCPConfig: &config.ManagedStdioMCPConfig{Package: "uv:some-pkg==1.0.0"},
+			},
+			wantType: "*source.UVSource",
+		},
+		"unmanaged stdio": {
+			name: "local-server",
+			ms: config.MCPSource{
+				Transport:              "stdio",
+				UnmanagedStdioMCPConfig: &config.UnmanagedStdioMCPConfig{Command: "/usr/bin/echo"},
+			},
+			wantType: "*source.StaticSource",
+		},
+		"external http": {
+			name: "remote-server",
+			ms: config.MCPSource{
+				Transport:            "http",
+				ExternalHttpMCPConfig: &config.ExternalHttpMCPConfig{URL: "https://example.com/mcp"},
+			},
+			wantType: "*source.StaticSource",
+		},
+		"unsupported config": {
+			name:    "bad-server",
+			ms:      config.MCPSource{Transport: "stdio"},
+			wantErr: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			src, err := SourceFromMCPConfig(tc.name, tc.ms)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("SourceFromMCPConfig() error = %v, wantErr = %v", err, tc.wantErr)
+			}
+			if tc.wantErr {
+				return
+			}
+
+			gotType := fmt.Sprintf("%T", src)
+			if gotType != tc.wantType {
+				t.Errorf("SourceFromMCPConfig() returned %s, want %s", gotType, tc.wantType)
 			}
 		})
 	}
