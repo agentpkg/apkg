@@ -10,8 +10,6 @@ type Source interface {
 	// Fetch retrieves the source content into the store (or validates local path).
 	// Returns the resolved source with path, commit, and integrity for the lockfile.
 	Fetch(ctx context.Context, store store.Store) (*ResolvedSource, error)
-	// String returns a human-readable source identifier for display.
-	String() string
 }
 
 type ResolvedSource struct {

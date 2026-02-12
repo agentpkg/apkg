@@ -38,6 +38,3 @@ func (l *LocalSource) Fetch(ctx context.Context, s store.Store) (*ResolvedSource
 	}, nil
 }
 
-func (l *LocalSource) String() string {
-	return l.Path
-}

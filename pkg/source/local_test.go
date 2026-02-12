@@ -80,10 +80,3 @@ func TestLocalSourceFetchRelativePath(t *testing.T) {
 		t.Errorf("Dir = %q, want absolute path", result.Dir)
 	}
 }
-
-func TestLocalSourceString(t *testing.T) {
-	src := &LocalSource{Path: "./my-skills/review"}
-	if got := src.String(); got != "./my-skills/review" {
-		t.Errorf("String() = %q, want %q", got, "./my-skills/review")
-	}
-}

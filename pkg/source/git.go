@@ -72,17 +72,6 @@ func (g *GitSource) Fetch(ctx context.Context, s store.Store) (*ResolvedSource, 
 	}, nil
 }
 
-func (g *GitSource) String() string {
-	s := g.URL
-	if g.Path != "" {
-		s += "//" + g.Path
-	}
-	if g.Ref != "" {
-		s += "@" + g.Ref
-	}
-	return s
-}
-
 // resolveRef resolves g.Ref to a full 40-char commit hash.
 // Full commit hashes are returned as-is. Short commit hashes are resolved
 // via git fetch + rev-parse. Branch and tag names are resolved via ls-remote.
@@ -98,7 +87,7 @@ func (g *GitSource) resolveRef(ctx context.Context) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", "ls-remote", g.URL, g.Ref, g.Ref+"^{}")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", gitError(err)
+		return "", execError(err)
 	}
 
 	var commit string
@@ -128,7 +117,7 @@ func (g *GitSource) resolveShortHash(ctx context.Context) (string, error) {
 	cmd := exec.CommandContext(ctx, "git", "ls-remote", g.URL)
 	out, err := cmd.Output()
 	if err != nil {
-		return "", gitError(err)
+		return "", execError(err)
 	}
 
 	prefix := strings.ToLower(g.Ref)
@@ -168,7 +157,7 @@ func (g *GitSource) clone(ctx context.Context, dest string, commit string) error
 func (g *GitSource) cloneBranch(ctx context.Context, dest string) error {
 	cmd := exec.CommandContext(ctx, "git", "clone", "--depth", "1", "--branch", g.Ref, g.URL, dest)
 	if _, err := cmd.Output(); err != nil {
-		return gitError(err)
+		return execError(err)
 	}
 	return nil
 }
@@ -184,7 +173,7 @@ func (g *GitSource) cloneCommit(ctx context.Context, dest string, commit string)
 	} {
 		cmd := exec.CommandContext(ctx, "git", args...)
 		if _, err := cmd.Output(); err != nil {
-			return gitError(err)
+			return execError(err)
 		}
 	}
 	return nil
@@ -250,8 +239,7 @@ func isHexString(s string) bool {
 	return true
 }
 
-// gitError extracts stderr from an exec.ExitError for better error messages.
-func gitError(err error) error {
+func execError(err error) error {
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) && len(exitErr.Stderr) > 0 {
 		return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(exitErr.Stderr)))

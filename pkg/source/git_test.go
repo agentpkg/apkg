@@ -216,39 +216,6 @@ func TestParseGitURL(t *testing.T) {
 	}
 }
 
-func TestGitSourceString(t *testing.T) {
-	tests := map[string]struct {
-		source GitSource
-		want   string
-	}{
-		"url only": {
-			source: GitSource{URL: "https://github.com/anthropics/skills.git"},
-			want:   "https://github.com/anthropics/skills.git",
-		},
-		"url with path": {
-			source: GitSource{URL: "https://github.com/anthropics/skills.git", Path: "skills/pdf"},
-			want:   "https://github.com/anthropics/skills.git//skills/pdf",
-		},
-		"url with ref": {
-			source: GitSource{URL: "https://github.com/anthropics/skills.git", Ref: "main"},
-			want:   "https://github.com/anthropics/skills.git@main",
-		},
-		"url with path and ref": {
-			source: GitSource{URL: "https://github.com/anthropics/skills.git", Path: "skills/pdf", Ref: "v1.0"},
-			want:   "https://github.com/anthropics/skills.git//skills/pdf@v1.0",
-		},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			got := tc.source.String()
-			if got != tc.want {
-				t.Errorf("String() = %q, want %q", got, tc.want)
-			}
-		})
-	}
-}
-
 func TestRepoSegments(t *testing.T) {
 	tests := map[string]struct {
 		source GitSource
