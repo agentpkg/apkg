@@ -8,12 +8,17 @@ path = 'dotfiles/.claude/skills/mn-github-pr-review'
 ref = 'main'
 
 [mcpServers]
+[mcpServers.context7]
+transport = 'http'
+name = 'context7'
+url = 'https://mcp.context7.com/mcp'
+
 [mcpServers.git]
 transport = 'stdio'
 name = 'git'
-url = 'uv:mcp-server-git'
+package = 'uv:mcp-server-git'
 
 [mcpServers.playwright]
 transport = 'stdio'
 name = 'playwright'
-url = 'npm:@playwright/mcp@latest'
+package = 'npm:@playwright/mcp@latest'

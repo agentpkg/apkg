@@ -60,6 +60,7 @@ func BuildMCPServerJsonConfig(server mcp.MCPServer) map[string]any {
 			config["env"] = env
 		}
 	} else {
+		config["type"] = server.Transport()
 		config["url"] = server.URL()
 		if headers := server.Headers(); len(headers) > 0 {
 			config["headers"] = headers
