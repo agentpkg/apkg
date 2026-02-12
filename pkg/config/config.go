@@ -34,6 +34,9 @@ type MCPSource struct {
 	// Transport is required: "stdio" or "http"
 	Transport string `toml:"transport"`
 
+	// Name of the server, overrides the key in the table of mcp servers
+	Name string `toml:"name,omitempty"`
+
 	// container config
 	*ContainerMCPConfig `toml:",omitempty"`
 	// external http server config
