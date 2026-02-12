@@ -16,8 +16,8 @@ type SkillProjector struct {
 	AgentDir string
 }
 
-func (sp *SkillProjector) ProjectSkills(projectDir string, packages []skill.Skill) error {
-	skillsDir := filepath.Join(projectDir, sp.AgentDir, "skills")
+func (sp *SkillProjector) ProjectSkills(opts ProjectionOpts, packages []skill.Skill) error {
+	skillsDir := filepath.Join(opts.ProjectDir, sp.AgentDir, "skills")
 	err := os.MkdirAll(skillsDir, 0755)
 	if err != nil {
 		return fmt.Errorf("failed to make %q dir for skills: %w", skillsDir, err)
