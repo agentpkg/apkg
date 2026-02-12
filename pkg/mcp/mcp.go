@@ -59,7 +59,7 @@ func Load(dir string) (MCPServer, error) {
 			return nil, fmt.Errorf("resolving binary for %q: %w", cfg.Package, err)
 		}
 
-		server := &managedLocalMCPServer{
+		server := &localStdioMcpServer{
 			name:    cfg.Name,
 			command: binPath,
 		}
@@ -73,7 +73,7 @@ func Load(dir string) (MCPServer, error) {
 	}
 
 	if cfg.UnmanagedStdioMCPConfig != nil {
-		server := &managedLocalMCPServer{
+		server := &localStdioMcpServer{
 			name:    cfg.Name,
 			command: cfg.Command,
 		}
@@ -160,18 +160,18 @@ func resolveNPMBin(dir string, pkg string) (string, error) {
 	return "", fmt.Errorf("package %q has multiple bin entries and none match the package name %q", pkg, unscopedName)
 }
 
-type managedLocalMCPServer struct {
+type localStdioMcpServer struct {
 	name    string
 	command string
 	args    []string
 	env     map[string]string
 }
 
-func (s *managedLocalMCPServer) Name() string {
+func (s *localStdioMcpServer) Name() string {
 	return s.name
 }
 
-func (s *managedLocalMCPServer) Validate() error {
+func (s *localStdioMcpServer) Validate() error {
 	if s.command == "" {
 		return fmt.Errorf("unable to create command to run managed mcp server")
 	}
@@ -179,27 +179,27 @@ func (s *managedLocalMCPServer) Validate() error {
 	return nil
 }
 
-func (s *managedLocalMCPServer) Transport() string {
+func (s *localStdioMcpServer) Transport() string {
 	return transportStdio
 }
 
-func (s *managedLocalMCPServer) Command() string {
+func (s *localStdioMcpServer) Command() string {
 	return s.command
 }
 
-func (s *managedLocalMCPServer) Args() []string {
+func (s *localStdioMcpServer) Args() []string {
 	return s.args
 }
 
-func (s *managedLocalMCPServer) URL() string {
+func (s *localStdioMcpServer) URL() string {
 	return ""
 }
 
-func (s *managedLocalMCPServer) Headers() map[string]string {
+func (s *localStdioMcpServer) Headers() map[string]string {
 	return nil
 }
 
-func (s *managedLocalMCPServer) Env() map[string]string {
+func (s *localStdioMcpServer) Env() map[string]string {
 	return s.env
 }
 
