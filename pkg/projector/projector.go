@@ -25,5 +25,5 @@ type Projector interface {
 
 	// SupportsMCPServers returns whether or not the given agent supports MCP servers
 	SupportsMCPServers() bool
-	ProjectMCPServers(opts ProjectionOpts, servers []mcp.MCP) error
+	ProjectMCPServers(opts ProjectionOpts, servers []mcp.MCPServer) error
 }

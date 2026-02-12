@@ -177,7 +177,7 @@ func TestSkillProjector_ProjectSkills(t *testing.T) {
 			packages := tc.setup(t, projectDir)
 
 			sp := &SkillProjector{AgentDir: tc.agentDir}
-			err := sp.ProjectSkills(projectDir, packages)
+			err := sp.ProjectSkills(ProjectionOpts{ProjectDir: projectDir}, packages)
 			if (err != nil) != tc.wantErr {
 				t.Fatalf("ProjectSkills() error = %v, wantErr %v", err, tc.wantErr)
 			}

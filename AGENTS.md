@@ -7,3 +7,8 @@ CLI commands are added in pkg/cmd. These should only be handling I/O, command pa
 ## Writing tests
 
 All tests in this repo follow a `map[string]struct` table test format
+
+## Make targets
+
+`make build`
+`make test`

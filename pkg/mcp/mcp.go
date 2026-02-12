@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,10 +14,9 @@ import (
 const (
 	mcpConfigFile  = "mcp.toml"
 	transportStdio = "stdio"
-	cmdNpx         = "npx"
 )
 
-type MCP interface {
+type MCPServer interface {
 	Name() string
 	Validate() error
 
@@ -30,7 +30,7 @@ type MCP interface {
 	Env() map[string]string
 }
 
-func Load(dir string) (MCP, error) {
+func Load(dir string) (MCPServer, error) {
 	configFile := filepath.Join(dir, mcpConfigFile)
 
 	data, err := os.ReadFile(configFile)
@@ -38,28 +38,97 @@ func Load(dir string) (MCP, error) {
 		return nil, fmt.Errorf("failed to read %q: %w", configFile, err)
 	}
 
-	config := &config.MCPSource{}
-	if err := toml.Unmarshal(data, config); err != nil {
+	cfg := &config.MCPSource{}
+	if err := toml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal %q: %w", configFile, err)
 	}
 
-	if config.ManagedStdioMCPConfig != nil {
-		return &managedLocalMCPServer{
-			name: config.Name,
-			dir:  dir,
-			args: config.Args,
-			env:  config.Env,
-		}, nil
+	if cfg.ManagedStdioMCPConfig != nil {
+		binPath, err := resolveNPMBin(dir, cfg.Package)
+		if err != nil {
+			return nil, fmt.Errorf("resolving binary for %q: %w", cfg.Package, err)
+		}
+
+		server := &managedLocalMCPServer{
+			name:    cfg.Name,
+			command: binPath,
+		}
+		if cfg.StdioMCPConfig != nil {
+			server.args = cfg.Args
+		}
+		if cfg.LocalMCPConfig != nil {
+			server.env = cfg.Env
+		}
+		return server, nil
 	}
 
 	return nil, fmt.Errorf("unsupported MCP server configuration")
 }
 
+// resolveNPMBin finds the executable binary for an npm package installed at dir.
+// It reads the package's package.json bin field and applies the same resolution
+// logic as npx: if there's a single entry use it, otherwise match the unscoped
+// package name.
+func resolveNPMBin(dir string, pkg string) (string, error) {
+	pkgName := strings.TrimPrefix(pkg, "npm:")
+	if idx := strings.LastIndex(pkgName, "@"); idx > 0 {
+		pkgName = pkgName[:idx]
+	}
+
+	pkgJSON := filepath.Join(dir, "node_modules", pkgName, "package.json")
+	data, err := os.ReadFile(pkgJSON)
+	if err != nil {
+		return "", fmt.Errorf("reading package.json: %w", err)
+	}
+
+	var meta struct {
+		Bin json.RawMessage `json:"bin"`
+	}
+	if err := json.Unmarshal(data, &meta); err != nil {
+		return "", fmt.Errorf("parsing package.json: %w", err)
+	}
+
+	binDir := filepath.Join(dir, "node_modules", ".bin")
+
+	// bin can be a string (single binary, name = unscoped package name)
+	var single string
+	if err := json.Unmarshal(meta.Bin, &single); err == nil {
+		unscopedName := pkgName
+		if i := strings.LastIndex(unscopedName, "/"); i >= 0 {
+			unscopedName = unscopedName[i+1:]
+		}
+		return filepath.Join(binDir, unscopedName), nil
+	}
+
+	// bin can be a map of name -> path
+	var bins map[string]string
+	if err := json.Unmarshal(meta.Bin, &bins); err != nil {
+		return "", fmt.Errorf("unexpected bin field format in package.json")
+	}
+
+	if len(bins) == 1 {
+		for name := range bins {
+			return filepath.Join(binDir, name), nil
+		}
+	}
+
+	// multiple entries: match the unscoped package name
+	unscopedName := pkgName
+	if i := strings.LastIndex(unscopedName, "/"); i >= 0 {
+		unscopedName = unscopedName[i+1:]
+	}
+	if _, ok := bins[unscopedName]; ok {
+		return filepath.Join(binDir, unscopedName), nil
+	}
+
+	return "", fmt.Errorf("package %q has multiple bin entries and none match the package name %q", pkg, unscopedName)
+}
+
 type managedLocalMCPServer struct {
-	name string
-	dir  string
-	args []string
-	env  map[string]string
+	name    string
+	command string
+	args    []string
+	env     map[string]string
 }
 
 func (s *managedLocalMCPServer) Name() string {
@@ -67,7 +136,7 @@ func (s *managedLocalMCPServer) Name() string {
 }
 
 func (s *managedLocalMCPServer) Validate() error {
-	if s.Command() == "" {
+	if s.command == "" {
 		return fmt.Errorf("unable to create command to run managed mcp server")
 	}
 
@@ -79,20 +148,11 @@ func (s *managedLocalMCPServer) Transport() string {
 }
 
 func (s *managedLocalMCPServer) Command() string {
-	if strings.Contains(s.dir, "npm") {
-		return cmdNpx
-	}
-
-	return ""
+	return s.command
 }
 
 func (s *managedLocalMCPServer) Args() []string {
-	args := make([]string, 0, len(s.args)+1)
-
-	args = append(args, s.dir)
-	args = append(args, s.args...)
-
-	return args
+	return s.args
 }
 
 func (s *managedLocalMCPServer) URL() string {

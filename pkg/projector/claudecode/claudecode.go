@@ -1,7 +1,6 @@
 package claudecode
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -35,7 +34,7 @@ func (c *claudeCodeProjector) SupportsMCPServers() bool {
 	return true
 }
 
-func (c *claudeCodeProjector) ProjectMCPServers(opts projector.ProjectionOpts, servers []mcp.MCP) error {
+func (c *claudeCodeProjector) ProjectMCPServers(opts projector.ProjectionOpts, servers []mcp.MCPServer) error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("failed to get home directory: %w", err)

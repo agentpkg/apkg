@@ -13,8 +13,9 @@ import (
 const ManifestFileName = "apkg.toml"
 
 type Config struct {
-	Project ProjectConfig          `toml:"project"`
-	Skills  map[string]SkillSource `toml:"skills,omitempty"`
+	Project    ProjectConfig          `toml:"project"`
+	Skills     map[string]SkillSource `toml:"skills,omitempty"`
+	MCPServers map[string]MCPSource   `toml:"mcpServers,omitempty"`
 }
 
 type ProjectConfig struct {

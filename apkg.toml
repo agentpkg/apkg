@@ -1,4 +1,14 @@
-skills = {mn-github-pr-review = {git = 'https://github.com/manusa/ai.git', path = 'dotfiles/.claude/skills/mn-github-pr-review', ref = 'main'}}
-
 [project]
 name = 'main'
+
+[skills]
+[skills.mn-github-pr-review]
+git = 'https://github.com/manusa/ai.git'
+path = 'dotfiles/.claude/skills/mn-github-pr-review'
+ref = 'main'
+
+[mcpServers]
+[mcpServers.playwright]
+transport = 'stdio'
+name = 'playwright'
+url = 'npm:@playwright/mcp@latest'

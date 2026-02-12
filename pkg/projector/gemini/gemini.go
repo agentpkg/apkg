@@ -34,7 +34,7 @@ func (g *geminiProjector) SupportsMCPServers() bool {
 	return true
 }
 
-func (g *geminiProjector) ProjectMCPServers(opts projector.ProjectionOpts, servers []mcp.MCP) error {
+func (g *geminiProjector) ProjectMCPServers(opts projector.ProjectionOpts, servers []mcp.MCPServer) error {
 	var configPath string
 	if opts.Scope == projector.ScopeGlobal {
 		homeDir, err := os.UserHomeDir()

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/agentpkg/agentpkg/pkg/mcp"
 )
@@ -36,6 +37,10 @@ func WriteJsonConfig(path string, config map[string]any) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("failed to create directory for %q: %w", path, err)
+	}
+
 	if err := os.WriteFile(path, data, configFilePerms); err != nil {
 		return fmt.Errorf("failed to write %q: %w", path, err)
 	}
@@ -43,7 +48,7 @@ func WriteJsonConfig(path string, config map[string]any) error {
 	return nil
 }
 
-func BuildMCPServerJsonConfig(server mcp.MCP) map[string]any {
+func BuildMCPServerJsonConfig(server mcp.MCPServer) map[string]any {
 	config := make(map[string]any)
 
 	if server.Transport() == "stdio" {

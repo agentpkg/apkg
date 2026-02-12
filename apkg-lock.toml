@@ -2,8 +2,15 @@
 version = 1
 
 [[skills]]
+name = ''
 git = 'https://github.com/manusa/ai.git'
 path = 'dotfiles/.claude/skills/mn-github-pr-review'
 ref = 'c3eeb26b06f630183c0e4fc2913216eb8c2da07a'
 commit = 'c3eeb26b06f630183c0e4fc2913216eb8c2da07a'
 integrity = 'sha256:cbe8fab535e82c35bf616755a8987c2790007c0a3534eea37fba06d46700d14f'
+
+[[mcp_servers]]
+name = 'playwright'
+transport = 'stdio'
+package = 'npm:@playwright/mcp@latest'
+integrity = 'sha256:866744182f189ba1dde735828278150efd3acaa18d9b5e60ee208bb34ca46c0b'

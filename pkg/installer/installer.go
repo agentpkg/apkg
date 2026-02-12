@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/agentpkg/agentpkg/pkg/config"
+	"github.com/agentpkg/agentpkg/pkg/mcp"
 	"github.com/agentpkg/agentpkg/pkg/projector"
 	"github.com/agentpkg/agentpkg/pkg/skill"
 	"github.com/agentpkg/agentpkg/pkg/source"
@@ -16,6 +17,7 @@ type Installer struct {
 	Store      store.Store
 	ProjectDir string
 	Agents     []string
+	Global     bool
 }
 
 // InstallAll resolves and installs all skills from the config. It compares
@@ -76,6 +78,41 @@ func (inst *Installer) InstallAll(ctx context.Context, cfg *config.Config, exist
 		return nil, err
 	}
 
+	// Install MCP servers.
+	var servers []mcp.MCPServer
+	for name, ms := range cfg.MCPServers {
+		src, err := source.SourceFromMCPConfig(name, ms)
+		if err != nil {
+			return nil, fmt.Errorf("resolving MCP server %q: %w", name, err)
+		}
+
+		resolved, err := src.Fetch(ctx, inst.Store)
+		if err != nil {
+			return nil, fmt.Errorf("fetching MCP server %q: %w", name, err)
+		}
+
+		server, err := mcp.Load(resolved.Dir)
+		if err != nil {
+			return nil, fmt.Errorf("loading MCP server %q: %w", name, err)
+		}
+
+		if err := server.Validate(); err != nil {
+			return nil, fmt.Errorf("validating MCP server %q: %w", name, err)
+		}
+
+		servers = append(servers, server)
+
+		lf.MCPServers = append(lf.MCPServers, mcpLockEntryFromResolved(name, ms, resolved))
+	}
+
+	sort.Slice(lf.MCPServers, func(i, j int) bool {
+		return lf.MCPServers[i].Name < lf.MCPServers[j].Name
+	})
+
+	if err := inst.projectMCPServers(servers); err != nil {
+		return nil, err
+	}
+
 	return lf, nil
 }
 
@@ -104,7 +141,16 @@ func (inst *Installer) InstallSkill(ctx context.Context, src source.Source) (ski
 	return s, resolved, nil
 }
 
+func (inst *Installer) projectionOpts() projector.ProjectionOpts {
+	opts := projector.ProjectionOpts{ProjectDir: inst.ProjectDir}
+	if inst.Global {
+		opts.Scope = projector.ScopeGlobal
+	}
+	return opts
+}
+
 func (inst *Installer) projectSkills(skills []skill.Skill) error {
+	opts := inst.projectionOpts()
 	for _, agent := range inst.Agents {
 		proj, ok := projector.GetProjector(agent)
 		if !ok {
@@ -113,11 +159,99 @@ func (inst *Installer) projectSkills(skills []skill.Skill) error {
 		if !proj.SupportsSkills() {
 			continue
 		}
-		if err := proj.ProjectSkills(inst.ProjectDir, skills); err != nil {
+		if err := proj.ProjectSkills(opts, skills); err != nil {
 			return fmt.Errorf("projecting skills for %s: %w", agent, err)
 		}
 	}
 	return nil
+}
+
+func (inst *Installer) projectMCPServers(servers []mcp.MCPServer) error {
+	opts := inst.projectionOpts()
+	for _, agent := range inst.Agents {
+		proj, ok := projector.GetProjector(agent)
+		if !ok {
+			return fmt.Errorf("no projector registered for agent %q", agent)
+		}
+		if !proj.SupportsMCPServers() {
+			continue
+		}
+		if err := proj.ProjectMCPServers(opts, servers); err != nil {
+			return fmt.Errorf("projecting MCP servers for %s: %w", agent, err)
+		}
+	}
+	return nil
+}
+
+// InstallMCP fetches a single MCP source, loads and validates the server, and
+// projects it. Returns the loaded server and resolved source so the caller can
+// update the config and lockfile.
+func (inst *Installer) InstallMCP(ctx context.Context, name string, src source.Source) (mcp.MCPServer, *source.ResolvedSource, error) {
+	resolved, err := src.Fetch(ctx, inst.Store)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetching MCP server: %w", err)
+	}
+
+	server, err := mcp.Load(resolved.Dir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("loading MCP server: %w", err)
+	}
+
+	if err := server.Validate(); err != nil {
+		return nil, nil, fmt.Errorf("validating MCP server: %w", err)
+	}
+
+	if err := inst.projectMCPServers([]mcp.MCPServer{server}); err != nil {
+		return nil, nil, err
+	}
+
+	return server, resolved, nil
+}
+
+func mcpLockEntryFromResolved(name string, ms config.MCPSource, resolved *source.ResolvedSource) config.MCPLockEntry {
+	entry := config.MCPLockEntry{
+		Name:        name,
+		Transport:   ms.Transport,
+		Integrity:   resolved.Integrity,
+		InstallPath: resolved.Dir,
+	}
+	if ms.ManagedStdioMCPConfig != nil {
+		entry.Package = ms.Package
+	}
+	if ms.UnmanagedStdioMCPConfig != nil {
+		entry.Command = ms.Command
+	}
+	if ms.StdioMCPConfig != nil {
+		entry.Args = ms.Args
+	}
+	if ms.ContainerMCPConfig != nil {
+		entry.Image = ms.Image
+		if ms.Port != nil {
+			entry.Port = *ms.Port
+		}
+	}
+	if ms.ExternalHttpMCPConfig != nil {
+		entry.URL = ms.URL
+	}
+	if ms.LocalMCPConfig != nil {
+		entry.EnvKeys = mapKeys(ms.Env)
+	}
+	if ms.HttpMCPConfig != nil {
+		entry.HeaderKeys = mapKeys(ms.Headers)
+	}
+	return entry
+}
+
+func mapKeys(m map[string]string) []string {
+	if len(m) == 0 {
+		return nil
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
 
 func lockEntryFromResolved(ss config.SkillSource, resolved *source.ResolvedSource) config.SkillLockEntry {
