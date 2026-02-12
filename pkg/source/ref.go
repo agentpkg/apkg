@@ -47,9 +47,9 @@ func ParseRef(ref string) (Source, config.SkillSource, error) {
 	return src, ss, nil
 }
 
-// SourceFromConfig converts a config.SkillSource into a Source.
+// SourceFromSkillConfig converts a config.SkillSource into a Source.
 // If Git is set, returns a GitSource; otherwise returns a LocalSource using Path.
-func SourceFromConfig(ss config.SkillSource) Source {
+func SourceFromSkillConfig(ss config.SkillSource) Source {
 	if ss.Git != "" {
 		return &GitSource{
 			URL:  ss.Git,
@@ -60,6 +60,19 @@ func SourceFromConfig(ss config.SkillSource) Source {
 
 	return &LocalSource{
 		Path: ss.Path,
+	}
+}
+
+func SourceFromMCPConfig(name string, ms config.MCPSource) (Source, error) {
+	if ms.Name == "" {
+		ms.Name = name
+	}
+
+	switch {
+	case ms.ManagedStdioMCPConfig != nil && strings.HasPrefix(ms.Package, "npm:"):
+		return &NPMSource{Package: strings.TrimPrefix(ms.Package, "npm:"), MCPConfig: ms}, nil
+	default:
+		return nil, fmt.Errorf("apkg does not currently support installing the MCP config provided")
 	}
 }
 
