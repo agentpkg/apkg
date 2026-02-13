@@ -83,6 +83,30 @@ package = "uv:my-uv-pkg"
 			wantType: "stdio",
 			wantCmd:  filepath.Join(".venv", "bin", "my-uv-pkg"),
 		},
+		"managed go": {
+			files: map[string]string{
+				"mcp.toml": `
+name = "go-test"
+package = "go:github.com/example/my-tool"
+`,
+				"bin/my-tool": "executable content",
+			},
+			wantName: "go-test",
+			wantType: "stdio",
+			wantCmd:  filepath.Join("bin", "my-tool"),
+		},
+		"managed go scoped": {
+			files: map[string]string{
+				"mcp.toml": `
+name = "go-scoped"
+package = "go:github.com/go-delve/mcp-dap-server@main"
+`,
+				"bin/mcp-dap-server": "executable content",
+			},
+			wantName: "go-scoped",
+			wantType: "stdio",
+			wantCmd:  filepath.Join("bin", "mcp-dap-server"),
+		},
 		"external http": {
 			files: map[string]string{
 				"mcp.toml": `

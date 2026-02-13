@@ -76,7 +76,7 @@ type ExternalHttpMCPConfig struct {
 // config for managed stdio mcp server
 type ManagedStdioMCPConfig struct {
 	// managed package - apkg installs + pins locally
-	// Format: "npm:<package>[@version]" or "uv:<package>[==version]"
+	// Format: "npm:<package>[@version]", "uv:<package>[==version]", or "go:<module>[@version]"
 	Package string `toml:"package,omitempty"`
 }
 

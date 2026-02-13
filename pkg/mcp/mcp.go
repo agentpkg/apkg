@@ -69,6 +69,8 @@ func Load(dir string) (MCPServer, error) {
 			binPath, err = resolveNPMBin(dir, cfg.Package)
 		case strings.HasPrefix(cfg.Package, "uv:"):
 			binPath, err = resolveUVBin(dir, cfg.Package)
+		case strings.HasPrefix(cfg.Package, "go:"):
+			binPath, err = resolveGoBin(dir, cfg.Package)
 		default:
 			return nil, fmt.Errorf("unsupported managed package prefix in %q", cfg.Package)
 		}
@@ -321,6 +323,30 @@ func resolveUVBin(dir string, pkg string) (string, error) {
 	}
 
 	binPath := filepath.Join(dir, ".venv", "bin", pkgName)
+	if _, err := os.Stat(binPath); err != nil {
+		return "", fmt.Errorf("binary not found at %s: %w", binPath, err)
+	}
+
+	return binPath, nil
+}
+
+// resolveGoBin finds the executable binary for a go module installed at dir.
+// It looks for the binary at bin/<last-segment-of-module-path> inside the
+// install directory. For example, github.com/go-delve/mcp-dap-server produces
+// bin/mcp-dap-server.
+func resolveGoBin(dir string, pkg string) (string, error) {
+	modPath := strings.TrimPrefix(pkg, "go:")
+	if idx := strings.LastIndex(modPath, "@"); idx > 0 {
+		modPath = modPath[:idx]
+	}
+
+	// The binary name is the last segment of the module path.
+	binName := modPath
+	if i := strings.LastIndex(modPath, "/"); i >= 0 {
+		binName = modPath[i+1:]
+	}
+
+	binPath := filepath.Join(dir, "bin", binName)
 	if _, err := os.Stat(binPath); err != nil {
 		return "", fmt.Errorf("binary not found at %s: %w", binPath, err)
 	}

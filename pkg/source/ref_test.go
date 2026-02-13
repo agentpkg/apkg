@@ -206,6 +206,14 @@ func TestSourceFromMCPConfig(t *testing.T) {
 			},
 			wantType: "*source.StaticSource",
 		},
+		"go managed stdio": {
+			name: "go-server",
+			ms: config.MCPSource{
+				Transport:            "stdio",
+				ManagedStdioMCPConfig: &config.ManagedStdioMCPConfig{Package: "go:github.com/example/tool@v1.0.0"},
+			},
+			wantType: "*source.GoSource",
+		},
 		"unsupported config": {
 			name:    "bad-server",
 			ms:      config.MCPSource{Transport: "stdio"},
