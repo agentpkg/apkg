@@ -1,9 +1,2 @@
 [project]
 name = 'main'
-
-[skills]
-[skills.mn-github-pr-review]
-git = 'https://github.com/manusa/ai.git'
-path = 'dotfiles/.claude/skills/mn-github-pr-review'
-ref = 'main'
-
