@@ -9,6 +9,7 @@ import (
 
 type stubProjector struct{}
 
+func (s *stubProjector) GitignoreEntries() []string                                    { return nil }
 func (s *stubProjector) SupportsSkills() bool                                          { return true }
 func (s *stubProjector) ProjectSkills(_ ProjectionOpts, _ []skill.Skill) error         { return nil }
 func (s *stubProjector) UnprojectSkills(_ ProjectionOpts, _ []string) error            { return nil }

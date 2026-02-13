@@ -18,6 +18,10 @@ type ProjectionOpts struct {
 }
 
 type Projector interface {
+	// GitignoreEntries returns paths that should be added to .gitignore for
+	// this agent (e.g. ".claude/").
+	GitignoreEntries() []string
+
 	// SupportsSkills returns whether or not the given agent supports skills
 	SupportsSkills() bool
 	// Project projects the packages to the appropriate handler by type

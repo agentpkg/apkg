@@ -11,16 +11,6 @@ import (
 
 const ManifestFile = config.ManifestFileName
 
-// AgentDirs are common coding-agent directories that should typically be
-// gitignored.
-var AgentDirs = []string{
-	".claude/",
-	".cursor/",
-	".gemini/",
-	".agents/",
-	".codex/",
-}
-
 // InferName derives a project name from the given directory path.
 func InferName(dir string) string {
 	return filepath.Base(dir)

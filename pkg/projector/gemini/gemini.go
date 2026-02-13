@@ -22,6 +22,10 @@ type geminiProjector struct {
 
 var _ projector.Projector = &geminiProjector{}
 
+func (g *geminiProjector) GitignoreEntries() []string {
+	return []string{".gemini/"}
+}
+
 func (g *geminiProjector) SupportsSkills() bool {
 	return true
 }

@@ -22,6 +22,10 @@ type claudeCodeProjector struct {
 
 var _ projector.Projector = &claudeCodeProjector{}
 
+func (c *claudeCodeProjector) GitignoreEntries() []string {
+	return []string{".claude/"}
+}
+
 func (c *claudeCodeProjector) SupportsSkills() bool {
 	return true
 }
