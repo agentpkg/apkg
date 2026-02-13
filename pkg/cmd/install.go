@@ -534,11 +534,14 @@ func warnIfServeNotRunning(w io.Writer, names []string) {
 	fmt.Fprintln(w, "Start it with: apkg serve")
 }
 
-// containerServerNames returns the names of MCP servers that use container images.
+// containerServerNames returns the names of MCP servers that use container
+// images with non-stdio transport (i.e. servers that require apkg serve).
+// Stdio containers are run directly via the container engine and don't need
+// the serve proxy.
 func containerServerNames(cfg *config.Config) []string {
 	var names []string
 	for name, ms := range cfg.MCPServers {
-		if ms.ContainerMCPConfig != nil && ms.Image != "" {
+		if ms.ContainerMCPConfig != nil && ms.Image != "" && ms.Transport != "stdio" {
 			names = append(names, name)
 		}
 	}

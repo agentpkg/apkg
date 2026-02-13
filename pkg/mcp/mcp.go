@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/agentpkg/agentpkg/pkg/config"
+	"github.com/agentpkg/agentpkg/pkg/container"
 	"github.com/pelletier/go-toml/v2"
 )
+
+// detectContainerEngine is the function used to find the container runtime.
+// It defaults to container.DetectEngine and can be overridden in tests.
+var detectContainerEngine = container.DetectEngine
 
 const (
 	mcpConfigFile  = "mcp.toml"
@@ -106,6 +112,10 @@ func Load(dir string) (MCPServer, error) {
 	}
 
 	if cfg.ContainerMCPConfig != nil && cfg.Image != "" {
+		if cfg.Transport == transportStdio {
+			return loadContainerStdio(cfg)
+		}
+
 		headers := map[string]string{
 			serveRouteHeader:       cfg.Name,
 			serveRouteDigestHeader: cfg.Digest,
@@ -128,6 +138,54 @@ func Load(dir string) (MCPServer, error) {
 	}
 
 	return nil, fmt.Errorf("unsupported MCP server configuration")
+}
+
+// loadContainerStdio builds a localStdioMcpServer that runs the container
+// image via the detected container engine (docker/podman) with stdin attached.
+func loadContainerStdio(cfg *config.MCPSource) (MCPServer, error) {
+	engine, err := detectContainerEngine()
+	if err != nil {
+		return nil, fmt.Errorf("detecting container engine for stdio container: %w", err)
+	}
+
+	imageRef := cfg.Image
+	if cfg.Digest != "" {
+		imageRef = cfg.Image + "@sha256:" + cfg.Digest
+	}
+
+	runArgs := []string{"run", "--rm", "-i"}
+
+	if cfg.Network != "" {
+		runArgs = append(runArgs, "--network", cfg.Network)
+	}
+
+	for _, vol := range cfg.Volumes {
+		runArgs = append(runArgs, "-v", vol)
+	}
+
+	if cfg.LocalMCPConfig != nil {
+		// Sort env keys for deterministic arg ordering.
+		keys := make([]string, 0, len(cfg.Env))
+		for k := range cfg.Env {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			runArgs = append(runArgs, "-e", k+"="+cfg.Env[k])
+		}
+	}
+
+	runArgs = append(runArgs, imageRef)
+
+	if cfg.LocalMCPConfig != nil {
+		runArgs = append(runArgs, cfg.Args...)
+	}
+
+	return &localStdioMcpServer{
+		name:    cfg.Name,
+		command: engine.Path,
+		args:    runArgs,
+	}, nil
 }
 
 // resolveNPMBin finds the executable binary for an npm package installed at dir.
