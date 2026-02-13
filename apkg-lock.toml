@@ -8,3 +8,13 @@ path = 'dotfiles/.claude/skills/mn-github-pr-review'
 ref = 'c3eeb26b06f630183c0e4fc2913216eb8c2da07a'
 commit = 'c3eeb26b06f630183c0e4fc2913216eb8c2da07a'
 integrity = 'sha256:cbe8fab535e82c35bf616755a8987c2790007c0a3534eea37fba06d46700d14f'
+
+[[skills]]
+name = ''
+path = './.agents/skills/apkg'
+
+[[mcp_servers]]
+name = 'debug-go'
+transport = 'stdio'
+package = 'go:github.com/go-delve/mcp-dap-server@latest'
+integrity = 'sha256:b2473815008a70a46f0924e5a5f2ac9c7702ceaca5ecf60742ead7a166e9243c'

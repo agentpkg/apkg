@@ -1,2 +1,12 @@
 [project]
 name = 'main'
+
+[skills]
+[skills.manage-agent-packages]
+path = './.agents/skills/apkg'
+
+[mcpServers]
+[mcpServers.debug-go]
+transport = 'stdio'
+name = 'debug-go'
+package = 'go:github.com/go-delve/mcp-dap-server@latest'

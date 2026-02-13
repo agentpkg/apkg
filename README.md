@@ -1,6 +1,6 @@
 # apkg
 
-apkg is like NPM for coding agents. It allows you to install and manage Skills, MCP Servers (coming soon), and Subagents (coming soon) across
+apkg is like NPM for coding agents. It allows you to install and manage Skills, MCP Servers, and Subagents (coming soon) across
 the coding agents of your choice.
 
 While coding agents and applications like Claude Code, Gemini CLI, and Cursor often have similar features such as skills, mcp servers, and subagents,
