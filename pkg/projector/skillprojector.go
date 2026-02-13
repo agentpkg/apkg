@@ -51,6 +51,28 @@ func (sp *SkillProjector) ProjectSkills(opts ProjectionOpts, packages []skill.Sk
 	return projectErr
 }
 
+func (sp *SkillProjector) UnprojectSkills(opts ProjectionOpts, names []string) error {
+	skillsDir := filepath.Join(opts.ProjectDir, sp.AgentDir, "skills")
+
+	var removeErr error
+	for _, name := range names {
+		link := filepath.Join(skillsDir, name)
+		exists, isSymlink := checkExistenceAndIsSymlink(link)
+		if !exists {
+			continue
+		}
+		if !isSymlink {
+			removeErr = errors.Join(removeErr, fmt.Errorf("refusing to remove %q: not a symlink", name))
+			continue
+		}
+		if err := os.Remove(link); err != nil {
+			removeErr = errors.Join(removeErr, fmt.Errorf("failed to remove symlink for skill %q: %w", name, err))
+		}
+	}
+
+	return removeErr
+}
+
 func overwriteSymlink(newTargetPath, linkPath string) error {
 	tmpLinkPath := fmt.Sprintf("%s.tmp", linkPath)
 

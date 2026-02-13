@@ -208,6 +208,42 @@ func (inst *Installer) InstallMCP(ctx context.Context, name string, src source.S
 	return server, resolved, nil
 }
 
+// RemoveSkill removes a skill's projections from all registered agents.
+func (inst *Installer) RemoveSkill(name string) error {
+	opts := inst.projectionOpts()
+	for _, agent := range inst.Agents {
+		proj, ok := projector.GetProjector(agent)
+		if !ok {
+			return fmt.Errorf("no projector registered for agent %q", agent)
+		}
+		if !proj.SupportsSkills() {
+			continue
+		}
+		if err := proj.UnprojectSkills(opts, []string{name}); err != nil {
+			return fmt.Errorf("unprojecting skill %q for %s: %w", name, agent, err)
+		}
+	}
+	return nil
+}
+
+// RemoveMCP removes an MCP server's projections from all registered agents.
+func (inst *Installer) RemoveMCP(name string) error {
+	opts := inst.projectionOpts()
+	for _, agent := range inst.Agents {
+		proj, ok := projector.GetProjector(agent)
+		if !ok {
+			return fmt.Errorf("no projector registered for agent %q", agent)
+		}
+		if !proj.SupportsMCPServers() {
+			continue
+		}
+		if err := proj.UnprojectMCPServers(opts, []string{name}); err != nil {
+			return fmt.Errorf("unprojecting MCP server %q for %s: %w", name, agent, err)
+		}
+	}
+	return nil
+}
+
 func mcpLockEntryFromResolved(name string, ms config.MCPSource, resolved *source.ResolvedSource) config.MCPLockEntry {
 	entry := config.MCPLockEntry{
 		Name:        name,

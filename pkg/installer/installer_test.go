@@ -207,6 +207,82 @@ func TestBuildLockIndex(t *testing.T) {
 	}
 }
 
+func TestRemoveSkill(t *testing.T) {
+	tests := map[string]struct {
+		setup   func(t *testing.T, projectDir string) string // returns skill name
+		wantErr bool
+	}{
+		"removes projected symlink": {
+			setup: func(t *testing.T, projectDir string) string {
+				// Create a skill dir and project it first.
+				skillDir := filepath.Join(t.TempDir(), "my-skill")
+				os.MkdirAll(skillDir, 0755)
+				writeSkill(t, skillDir, "my-skill")
+
+				inst := &Installer{
+					Store:      store.New(t.TempDir()),
+					ProjectDir: projectDir,
+					Agents:     []string{},
+				}
+				_, _, err := inst.InstallSkill(context.Background(), &source.LocalSource{Path: skillDir})
+				if err != nil {
+					t.Fatalf("InstallSkill setup: %v", err)
+				}
+				return "my-skill"
+			},
+		},
+		"no-op when no agents": {
+			setup: func(t *testing.T, projectDir string) string {
+				return "nonexistent-skill"
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			projectDir := t.TempDir()
+			skillName := tc.setup(t, projectDir)
+
+			inst := &Installer{
+				Store:      store.New(t.TempDir()),
+				ProjectDir: projectDir,
+				Agents:     []string{},
+			}
+
+			err := inst.RemoveSkill(skillName)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("RemoveSkill() error = %v, wantErr = %v", err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestRemoveMCP(t *testing.T) {
+	tests := map[string]struct {
+		name    string
+		wantErr bool
+	}{
+		"no-op when no agents": {
+			name: "my-server",
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			inst := &Installer{
+				Store:      store.New(t.TempDir()),
+				ProjectDir: t.TempDir(),
+				Agents:     []string{},
+			}
+
+			err := inst.RemoveMCP(tc.name)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("RemoveMCP() error = %v, wantErr = %v", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestLockKey(t *testing.T) {
 	tests := map[string]struct {
 		input config.SkillSource

@@ -186,3 +186,100 @@ func TestSkillProjector_ProjectSkills(t *testing.T) {
 		})
 	}
 }
+
+func TestSkillProjector_UnprojectSkills(t *testing.T) {
+	tests := map[string]struct {
+		agentDir string
+		setup    func(t *testing.T, projectDir string)
+		names    []string
+		verify   func(t *testing.T, projectDir, agentDir string)
+		wantErr  bool
+	}{
+		"removes existing symlink": {
+			agentDir: ".testagent",
+			setup: func(t *testing.T, projectDir string) {
+				skillsDir := filepath.Join(projectDir, ".testagent", "skills")
+				if err := os.MkdirAll(skillsDir, 0755); err != nil {
+					t.Fatal(err)
+				}
+				target := filepath.Join(t.TempDir(), "my-skill")
+				if err := os.Mkdir(target, 0755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(target, filepath.Join(skillsDir, "my-skill")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			names: []string{"my-skill"},
+			verify: func(t *testing.T, projectDir, agentDir string) {
+				link := filepath.Join(projectDir, agentDir, "skills", "my-skill")
+				if _, err := os.Lstat(link); !os.IsNotExist(err) {
+					t.Error("expected symlink to be removed")
+				}
+			},
+		},
+		"nonexistent name is a no-op": {
+			agentDir: ".testagent",
+			setup:    func(t *testing.T, projectDir string) {},
+			names:    []string{"does-not-exist"},
+			verify:   func(t *testing.T, projectDir, agentDir string) {},
+		},
+		"regular file causes error": {
+			agentDir: ".testagent",
+			setup: func(t *testing.T, projectDir string) {
+				skillsDir := filepath.Join(projectDir, ".testagent", "skills")
+				if err := os.MkdirAll(skillsDir, 0755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(skillsDir, "my-skill"), []byte("not a symlink"), 0644); err != nil {
+					t.Fatal(err)
+				}
+			},
+			names:   []string{"my-skill"},
+			verify:  func(t *testing.T, projectDir, agentDir string) {},
+			wantErr: true,
+		},
+		"removes multiple symlinks": {
+			agentDir: ".testagent",
+			setup: func(t *testing.T, projectDir string) {
+				skillsDir := filepath.Join(projectDir, ".testagent", "skills")
+				if err := os.MkdirAll(skillsDir, 0755); err != nil {
+					t.Fatal(err)
+				}
+				for _, name := range []string{"skill-a", "skill-b"} {
+					target := filepath.Join(t.TempDir(), name)
+					if err := os.Mkdir(target, 0755); err != nil {
+						t.Fatal(err)
+					}
+					if err := os.Symlink(target, filepath.Join(skillsDir, name)); err != nil {
+						t.Fatal(err)
+					}
+				}
+			},
+			names: []string{"skill-a", "skill-b"},
+			verify: func(t *testing.T, projectDir, agentDir string) {
+				for _, name := range []string{"skill-a", "skill-b"} {
+					link := filepath.Join(projectDir, agentDir, "skills", name)
+					if _, err := os.Lstat(link); !os.IsNotExist(err) {
+						t.Errorf("expected symlink %q to be removed", name)
+					}
+				}
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			projectDir := t.TempDir()
+			tc.setup(t, projectDir)
+
+			sp := &SkillProjector{AgentDir: tc.agentDir}
+			err := sp.UnprojectSkills(ProjectionOpts{ProjectDir: projectDir}, tc.names)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("UnprojectSkills() error = %v, wantErr %v", err, tc.wantErr)
+			}
+
+			tc.verify(t, projectDir, tc.agentDir)
+		})
+	}
+}

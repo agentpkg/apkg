@@ -30,6 +30,10 @@ func (c *claudeCodeProjector) ProjectSkills(opts projector.ProjectionOpts, packa
 	return c.sp.ProjectSkills(opts, packages)
 }
 
+func (c *claudeCodeProjector) UnprojectSkills(opts projector.ProjectionOpts, names []string) error {
+	return c.sp.UnprojectSkills(opts, names)
+}
+
 func (c *claudeCodeProjector) SupportsMCPServers() bool {
 	return true
 }
@@ -63,6 +67,43 @@ func (c *claudeCodeProjector) ProjectMCPServers(opts projector.ProjectionOpts, s
 			project := projector.GetOrCreateMap(projects, projectDir)
 			mcpServers := projector.GetOrCreateMap(project, "mcpServers")
 			mcpServers[server.Name()] = serverConfig
+		}
+	}
+
+	return projector.WriteJsonConfig(claudeConfigPath, config)
+}
+
+func (c *claudeCodeProjector) UnprojectMCPServers(opts projector.ProjectionOpts, names []string) error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	claudeConfigPath := filepath.Join(homeDir, ".claude.json")
+
+	config, err := projector.ReadJsonConfig(claudeConfigPath)
+	if err != nil {
+		return err
+	}
+
+	projectDir, err := filepath.Abs(opts.ProjectDir)
+	if err != nil {
+		return fmt.Errorf("failed to resolve absolute path for project dir %q: %w", opts.ProjectDir, err)
+	}
+
+	for _, name := range names {
+		if opts.Scope == projector.ScopeGlobal {
+			if mcpServers, ok := config["mcpServers"].(map[string]any); ok {
+				delete(mcpServers, name)
+			}
+		} else {
+			if projects, ok := config["projects"].(map[string]any); ok {
+				if project, ok := projects[projectDir].(map[string]any); ok {
+					if mcpServers, ok := project["mcpServers"].(map[string]any); ok {
+						delete(mcpServers, name)
+					}
+				}
+			}
 		}
 	}
 

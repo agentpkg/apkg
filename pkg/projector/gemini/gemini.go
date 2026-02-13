@@ -30,6 +30,10 @@ func (g *geminiProjector) ProjectSkills(opts projector.ProjectionOpts, packages 
 	return g.sp.ProjectSkills(opts, packages)
 }
 
+func (g *geminiProjector) UnprojectSkills(opts projector.ProjectionOpts, names []string) error {
+	return g.sp.UnprojectSkills(opts, names)
+}
+
 func (g *geminiProjector) SupportsMCPServers() bool {
 	return true
 }
@@ -57,6 +61,33 @@ func (g *geminiProjector) ProjectMCPServers(opts projector.ProjectionOpts, serve
 
 		mcpServers := projector.GetOrCreateMap(config, "mcpServers")
 		mcpServers[server.Name()] = serverConfig
+	}
+
+	return projector.WriteJsonConfig(configPath, config)
+}
+
+func (g *geminiProjector) UnprojectMCPServers(opts projector.ProjectionOpts, names []string) error {
+	var configPath string
+	if opts.Scope == projector.ScopeGlobal {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+
+		configPath = filepath.Join(homeDir, ".gemini", "settings.json")
+	} else {
+		configPath = filepath.Join(opts.ProjectDir, ".gemini", "settings.json")
+	}
+
+	config, err := projector.ReadJsonConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	if mcpServers, ok := config["mcpServers"].(map[string]any); ok {
+		for _, name := range names {
+			delete(mcpServers, name)
+		}
 	}
 
 	return projector.WriteJsonConfig(configPath, config)

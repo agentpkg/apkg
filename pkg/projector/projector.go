@@ -22,8 +22,12 @@ type Projector interface {
 	SupportsSkills() bool
 	// Project projects the packages to the appropriate handler by type
 	ProjectSkills(opts ProjectionOpts, packages []skill.Skill) error
+	// UnprojectSkills removes previously projected skills by name
+	UnprojectSkills(opts ProjectionOpts, names []string) error
 
 	// SupportsMCPServers returns whether or not the given agent supports MCP servers
 	SupportsMCPServers() bool
 	ProjectMCPServers(opts ProjectionOpts, servers []mcp.MCPServer) error
+	// UnprojectMCPServers removes previously projected MCP servers by name
+	UnprojectMCPServers(opts ProjectionOpts, names []string) error
 }

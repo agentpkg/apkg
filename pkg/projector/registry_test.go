@@ -9,10 +9,12 @@ import (
 
 type stubProjector struct{}
 
-func (s *stubProjector) SupportsSkills() bool                                        { return true }
-func (s *stubProjector) ProjectSkills(_ ProjectionOpts, _ []skill.Skill) error       { return nil }
-func (s *stubProjector) SupportsMCPServers() bool                                    { return true }
-func (s *stubProjector) ProjectMCPServers(_ ProjectionOpts, _ []mcp.MCPServer) error { return nil }
+func (s *stubProjector) SupportsSkills() bool                                          { return true }
+func (s *stubProjector) ProjectSkills(_ ProjectionOpts, _ []skill.Skill) error         { return nil }
+func (s *stubProjector) UnprojectSkills(_ ProjectionOpts, _ []string) error            { return nil }
+func (s *stubProjector) SupportsMCPServers() bool                                      { return true }
+func (s *stubProjector) ProjectMCPServers(_ ProjectionOpts, _ []mcp.MCPServer) error   { return nil }
+func (s *stubProjector) UnprojectMCPServers(_ ProjectionOpts, _ []string) error        { return nil }
 
 func TestRegisteredAgents(t *testing.T) {
 	tests := map[string]struct {
