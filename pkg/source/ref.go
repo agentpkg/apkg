@@ -77,6 +77,8 @@ func SourceFromMCPConfig(name string, ms config.MCPSource) (Source, error) {
 		return &StaticSource{Name: ms.Name, MCPConfig: ms}, nil
 	case ms.ExternalHttpMCPConfig != nil:
 		return &StaticSource{Name: ms.Name, MCPConfig: ms}, nil
+	case ms.ContainerMCPConfig != nil && ms.Image != "":
+		return &OCISource{Name: ms.Name, MCPConfig: ms}, nil
 	default:
 		return nil, fmt.Errorf("apkg does not currently support installing the MCP config provided")
 	}

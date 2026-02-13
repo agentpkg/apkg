@@ -23,9 +23,9 @@ func TestStaticSourceFetch(t *testing.T) {
 		"unmanaged stdio": {
 			name: "my-server",
 			mcpConfig: config.MCPSource{
-				Transport:              "stdio",
+				Transport:               "stdio",
 				UnmanagedStdioMCPConfig: &config.UnmanagedStdioMCPConfig{Command: "/usr/bin/echo"},
-				StdioMCPConfig:         &config.StdioMCPConfig{Args: []string{"hello"}},
+				LocalMCPConfig:          &config.LocalMCPConfig{Args: []string{"hello"}},
 			},
 		},
 		"external http": {

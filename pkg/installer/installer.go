@@ -221,7 +221,7 @@ func mcpLockEntryFromResolved(name string, ms config.MCPSource, resolved *source
 	if ms.UnmanagedStdioMCPConfig != nil {
 		entry.Command = ms.Command
 	}
-	if ms.StdioMCPConfig != nil {
+	if ms.LocalMCPConfig != nil && len(ms.Args) > 0 {
 		entry.Args = ms.Args
 	}
 	if ms.ContainerMCPConfig != nil {

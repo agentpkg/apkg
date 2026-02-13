@@ -46,11 +46,12 @@ func (s *NPMSource) Fetch(ctx context.Context, store store.Store) (*ResolvedSour
 			store.Remove(segs...)
 			return nil, fmt.Errorf("failed to install npm package %s@%s: %w", s.packageName(), version, err)
 		}
+	}
 
-		if err := s.writeMCPConfig(store, segs); err != nil {
-			store.Remove(segs...)
-			return nil, fmt.Errorf("writing mcp config: %w", err)
-		}
+	// Always write mcp.toml so config changes are picked up even when
+	// the package version is already cached.
+	if err := s.writeMCPConfig(store, segs); err != nil {
+		return nil, fmt.Errorf("writing mcp config: %w", err)
 	}
 
 	integrity, err := store.HashDir(segs...)

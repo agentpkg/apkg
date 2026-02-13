@@ -2,14 +2,18 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/agentpkg/agentpkg/pkg/config"
 	"github.com/agentpkg/agentpkg/pkg/installer"
 	"github.com/agentpkg/agentpkg/pkg/project"
 	"github.com/agentpkg/agentpkg/pkg/projector"
+	"github.com/agentpkg/agentpkg/pkg/serve"
 	"github.com/agentpkg/agentpkg/pkg/source"
 	"github.com/agentpkg/agentpkg/pkg/store"
 	"github.com/charmbracelet/huh"
@@ -54,9 +58,12 @@ Examples:
 	mcpCmd.Flags().StringP("transport", "t", "", "Required. \"stdio\" or \"http\"")
 	mcpCmd.Flags().String("package", "", "Managed package (npm:pkg or uv:pkg)")
 	mcpCmd.Flags().String("command", "", "Unmanaged command path")
-	mcpCmd.Flags().StringSlice("args", nil, "Command arguments (only with --command)")
+	mcpCmd.Flags().StringSlice("args", nil, "Arguments for command or container entrypoint")
 	mcpCmd.Flags().String("image", "", "Container image")
 	mcpCmd.Flags().Int("port", 8080, "Container port for http containers")
+	mcpCmd.Flags().String("path", "/mcp", "URL path on the container")
+	mcpCmd.Flags().StringSlice("volume", nil, "Volume mounts for containers (host:container[:ro])")
+	mcpCmd.Flags().String("network", "", "Container network (e.g. \"host\", \"kind\")")
 	mcpCmd.Flags().String("url", "", "Remote HTTP endpoint URL")
 	mcpCmd.Flags().StringToString("env", nil, "Environment variables (KEY=VALUE)")
 	mcpCmd.Flags().StringToString("headers", nil, "HTTP headers (for external HTTP)")
@@ -152,6 +159,8 @@ func runInstallAll(cmd *cobra.Command, args []string) error {
 		total := len(cfg.Skills) + len(cfg.MCPServers)
 		fmt.Fprintf(cmd.OutOrStdout(), "Projected %d package(s) to %s\n", total, strings.Join(agents, ", "))
 	}
+
+	warnIfServeNotRunning(cmd.OutOrStdout(), containerServerNames(cfg))
 	return nil
 }
 
@@ -337,6 +346,10 @@ func runInstallMCP(cmd *cobra.Command, args []string) error {
 	} else {
 		fmt.Fprintf(cmd.OutOrStdout(), "Projected 1 MCP server(s) to %s\n", strings.Join(agents, ", "))
 	}
+
+	if mcpSource.ContainerMCPConfig != nil && mcpSource.Image != "" {
+		warnIfServeNotRunning(cmd.OutOrStdout(), []string{name})
+	}
 	return nil
 }
 
@@ -362,17 +375,24 @@ func mcpSourceFromFlags(cmd *cobra.Command, name string) (config.MCPSource, erro
 	if command != "" {
 		ms.UnmanagedStdioMCPConfig = &config.UnmanagedStdioMCPConfig{Command: command}
 	}
-	if len(args) > 0 {
-		ms.StdioMCPConfig = &config.StdioMCPConfig{Args: args}
-	}
 	if image != "" {
-		ms.ContainerMCPConfig = &config.ContainerMCPConfig{Image: image, Port: &port}
+		path, _ := cmd.Flags().GetString("path")
+		volumes, _ := cmd.Flags().GetStringSlice("volume")
+		network, _ := cmd.Flags().GetString("network")
+		ms.ContainerMCPConfig = &config.ContainerMCPConfig{Image: image, Port: &port, Path: path, Volumes: volumes, Network: network}
 	}
 	if url != "" {
 		ms.ExternalHttpMCPConfig = &config.ExternalHttpMCPConfig{URL: url}
 	}
-	if len(env) > 0 {
-		ms.LocalMCPConfig = &config.LocalMCPConfig{Env: env}
+	if len(args) > 0 || len(env) > 0 {
+		lc := &config.LocalMCPConfig{}
+		if len(args) > 0 {
+			lc.Args = args
+		}
+		if len(env) > 0 {
+			lc.Env = env
+		}
+		ms.LocalMCPConfig = lc
 	}
 	if len(headers) > 0 {
 		ms.HttpMCPConfig = &config.HttpMCPConfig{Headers: headers}
@@ -491,4 +511,36 @@ func promptAgents(global bool) ([]string, error) {
 	}
 
 	return selected, nil
+}
+
+// warnIfServeNotRunning prints a warning when containerized MCP servers
+// are installed but the apkg serve proxy isn't reachable.
+func warnIfServeNotRunning(w io.Writer, names []string) {
+	if len(names) == 0 {
+		return
+	}
+
+	addr := fmt.Sprintf("127.0.0.1:%d", serve.DefaultPort)
+	conn, err := net.DialTimeout("tcp", addr, 500*time.Millisecond)
+	if err == nil {
+		conn.Close()
+		return // proxy is running
+	}
+
+	fmt.Fprintln(w)
+	for _, name := range names {
+		fmt.Fprintf(w, "Warning: MCP server %q requires `apkg serve` to be running.\n", name)
+	}
+	fmt.Fprintln(w, "Start it with: apkg serve")
+}
+
+// containerServerNames returns the names of MCP servers that use container images.
+func containerServerNames(cfg *config.Config) []string {
+	var names []string
+	for name, ms := range cfg.MCPServers {
+		if ms.ContainerMCPConfig != nil && ms.Image != "" {
+			names = append(names, name)
+		}
+	}
+	return names
 }

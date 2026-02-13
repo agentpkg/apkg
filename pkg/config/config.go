@@ -49,16 +49,18 @@ type MCPSource struct {
 
 	// http transport config
 	*HttpMCPConfig `toml:",omitempty"`
-	//stdio transport config
-	*StdioMCPConfig `toml:",omitempty"`
 
-	// common config for any local mcp server
+	// common config for any locally-run mcp server (stdio or container)
 	*LocalMCPConfig `toml:",omitempty"`
 }
 
 type ContainerMCPConfig struct {
-	Image string `toml:"image,omitempty"`
-	Port  *int   `toml:"port,omitempty"` // port within container image to map to
+	Image   string   `toml:"image,omitempty"`
+	Port    *int     `toml:"port,omitempty"`    // port within container image to map to
+	Path    string   `toml:"path,omitempty"`    // URL path on the container (default "mcp")
+	Digest  string   `toml:"digest,omitempty"`  // resolved image digest, populated at install time
+	Volumes []string `toml:"volumes,omitempty"` // bind mounts (host:container[:ro])
+	Network string   `toml:"network,omitempty"` // container network (e.g. "host", "kind")
 }
 
 // config for any http transport mcp server
@@ -83,13 +85,9 @@ type UnmanagedStdioMCPConfig struct {
 	Command string `toml:"command,omitempty"`
 }
 
-// config for stdio mcp server
-type StdioMCPConfig struct {
-	Args []string `toml:"args,omitempty"`
-}
-
 type LocalMCPConfig struct {
-	Env map[string]string `toml:"env,omitempty"`
+	Env  map[string]string `toml:"env,omitempty"`
+	Args []string          `toml:"args,omitempty"`
 }
 
 func UnmarshalConfig(data []byte) (*Config, error) {

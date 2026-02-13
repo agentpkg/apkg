@@ -14,6 +14,17 @@ import (
 const (
 	mcpConfigFile  = "mcp.toml"
 	transportStdio = "stdio"
+	transportHTTP  = "http"
+
+	// serveProxyURL is the default URL for the apkg serve proxy that
+	// manages containerized MCP servers. Must match serve.DefaultPort.
+	serveProxyURL = "http://localhost:19513"
+	// serveRouteHeader is the HTTP header used by apkg serve to route
+	// requests to the correct container. Must match serve.MCPServerHeader.
+	serveRouteHeader = "X-MCP-Server"
+	// serveRouteDigestHeader disambiguates when multiple projects install
+	// the same server name with different images. Must match serve.MCPServerDigestHeader.
+	serveRouteDigestHeader = "X-MCP-Server-Digest"
 )
 
 type MCPServer interface {
@@ -63,10 +74,8 @@ func Load(dir string) (MCPServer, error) {
 			name:    cfg.Name,
 			command: binPath,
 		}
-		if cfg.StdioMCPConfig != nil {
-			server.args = cfg.Args
-		}
 		if cfg.LocalMCPConfig != nil {
+			server.args = cfg.Args
 			server.env = cfg.Env
 		}
 		return server, nil
@@ -77,10 +86,8 @@ func Load(dir string) (MCPServer, error) {
 			name:    cfg.Name,
 			command: cfg.Command,
 		}
-		if cfg.StdioMCPConfig != nil {
-			server.args = cfg.Args
-		}
 		if cfg.LocalMCPConfig != nil {
+			server.args = cfg.Args
 			server.env = cfg.Env
 		}
 		return server, nil
@@ -96,6 +103,28 @@ func Load(dir string) (MCPServer, error) {
 			server.headers = cfg.Headers
 		}
 		return server, nil
+	}
+
+	if cfg.ContainerMCPConfig != nil && cfg.Image != "" {
+		headers := map[string]string{
+			serveRouteHeader:       cfg.Name,
+			serveRouteDigestHeader: cfg.Digest,
+		}
+		// Merge user-configured headers (e.g. Authorization) — these get
+		// forwarded to the container while the routing headers are stripped
+		// by the apkg serve proxy.
+		if cfg.HttpMCPConfig != nil {
+			for k, v := range cfg.Headers {
+				headers[k] = v
+			}
+		}
+		serverURL := serveProxyURL + cfg.Path
+		return &httpMCPServer{
+			name:      cfg.Name,
+			url:       serverURL,
+			transport: transportHTTP,
+			headers:   headers,
+		}, nil
 	}
 
 	return nil, fmt.Errorf("unsupported MCP server configuration")
