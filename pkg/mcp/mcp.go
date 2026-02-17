@@ -86,6 +86,16 @@ func Load(dir string) (MCPServer, error) {
 			server.args = cfg.Args
 			server.env = cfg.Env
 		}
+
+		// For npm packages with a resolved runtime, use the runtime as
+		// the command and prepend the binary path to args. This ensures
+		// agents that don't source the shell environment (e.g. Cursor)
+		// can locate the interpreter.
+		if cfg.Runtime != "" {
+			server.args = append([]string{binPath}, server.args...)
+			server.command = cfg.Runtime
+		}
+
 		return server, nil
 	}
 

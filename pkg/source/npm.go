@@ -48,6 +48,14 @@ func (s *NPMSource) Fetch(ctx context.Context, store store.Store) (*ResolvedSour
 		}
 	}
 
+	// Resolve the node binary so that agents which do not source the
+	// shell environment (e.g. Cursor) can locate the runtime.
+	nodePath, err := exec.LookPath("node")
+	if err != nil {
+		return nil, fmt.Errorf("node not found in PATH: %w", err)
+	}
+	s.MCPConfig.ManagedStdioMCPConfig.Runtime = nodePath
+
 	// Always write mcp.toml so config changes are picked up even when
 	// the package version is already cached.
 	if err := s.writeMCPConfig(store, segs); err != nil {

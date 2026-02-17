@@ -78,6 +78,12 @@ type ManagedStdioMCPConfig struct {
 	// managed package - apkg installs + pins locally
 	// Format: "npm:<package>[@version]", "uv:<package>[==version]", or "go:<module>[@version]"
 	Package string `toml:"package,omitempty"`
+
+	// Runtime is the resolved absolute path to the interpreter needed to
+	// run the package (e.g. /usr/local/bin/node for npm packages). It is
+	// populated at install time so that agents which do not source the
+	// shell environment (e.g. Cursor) can locate the runtime.
+	Runtime string `toml:"runtime,omitempty"`
 }
 
 // config for unmanaged stdio mcp server

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/agentpkg/agentpkg/pkg/container"
@@ -40,36 +41,57 @@ env = { FOO = "bar" }
 				"mcp.toml": `
 name = "npm-single"
 package = "npm:my-pkg"
+runtime = "/usr/local/bin/node"
 `,
 				"node_modules/my-pkg/package.json": `{"bin": "cli.js"}`,
 			},
 			wantName: "npm-single",
 			wantType: "stdio",
-			wantCmd:  filepath.Join("node_modules", ".bin", "my-pkg"),
+			wantCmd:  "/usr/local/bin/node",
+			wantArgs: []string{filepath.Join("node_modules", ".bin", "my-pkg")},
 		},
 		"managed npm bin map single": {
 			files: map[string]string{
 				"mcp.toml": `
 name = "npm-map"
 package = "npm:my-pkg-map"
+runtime = "/usr/local/bin/node"
 `,
 				"node_modules/my-pkg-map/package.json": `{"bin": {"my-cli": "cli.js"}}`,
 			},
 			wantName: "npm-map",
 			wantType: "stdio",
-			wantCmd:  filepath.Join("node_modules", ".bin", "my-cli"),
+			wantCmd:  "/usr/local/bin/node",
+			wantArgs: []string{filepath.Join("node_modules", ".bin", "my-cli")},
 		},
 		"managed npm bin map multi match unscoped": {
 			files: map[string]string{
 				"mcp.toml": `
 name = "npm-multi"
 package = "npm:@scope/my-pkg"
+runtime = "/usr/local/bin/node"
 `,
 				"node_modules/@scope/my-pkg/package.json": `{"bin": {"other": "other.js", "my-pkg": "cli.js"}}`,
 			},
 			wantName: "npm-multi",
 			wantType: "stdio",
-			wantCmd:  filepath.Join("node_modules", ".bin", "my-pkg"),
+			wantCmd:  "/usr/local/bin/node",
+			wantArgs: []string{filepath.Join("node_modules", ".bin", "my-pkg")},
+		},
+		"managed npm with user args": {
+			files: map[string]string{
+				"mcp.toml": `
+name = "npm-args"
+package = "npm:my-pkg"
+runtime = "/usr/local/bin/node"
+args = ["--stdio"]
+`,
+				"node_modules/my-pkg/package.json": `{"bin": "cli.js"}`,
+			},
+			wantName: "npm-args",
+			wantType: "stdio",
+			wantCmd:  "/usr/local/bin/node",
+			wantArgs: []string{filepath.Join("node_modules", ".bin", "my-pkg"), "--stdio"},
 		},
 		"managed uv": {
 			files: map[string]string{
@@ -182,9 +204,22 @@ path = "/mcp"
 				}
 			}
 
-			if len(tc.wantArgs) > 0 {
-				if !reflect.DeepEqual(server.Args(), tc.wantArgs) {
-					t.Errorf("Args() = %v, want %v", server.Args(), tc.wantArgs)
+				if len(tc.wantArgs) > 0 {
+				got := server.Args()
+				if !reflect.DeepEqual(got, tc.wantArgs) {
+					// Try with dir-prefixed relative paths for managed packages.
+					// Only prefix args that look like paths (contain a separator).
+					prefixed := make([]string, len(tc.wantArgs))
+					for i, a := range tc.wantArgs {
+						if filepath.IsAbs(a) || !strings.Contains(a, string(filepath.Separator)) {
+							prefixed[i] = a
+						} else {
+							prefixed[i] = filepath.Join(dir, a)
+						}
+					}
+					if !reflect.DeepEqual(got, prefixed) {
+						t.Errorf("Args() = %v, want %v or %v", got, tc.wantArgs, prefixed)
+					}
 				}
 			}
 
